@@ -72,7 +72,7 @@ def saved_for_eval(dataloader, results, question_ids, answer_preds):
     return results
 
 
-def train(model, m_model, bias_model, optim, optim_G, train_loader, loss_fn, tracker, writer, tb_count, epoch, args):
+def train(model, m_model, bias_model, optim, optim_G, train_loader, loss_fn, tracker, tb_count, epoch, args):
 
     loader = tqdm(train_loader, ncols=0)
     loss_trk = tracker.track('loss', tracker.MovingMeanMonitor(momentum=0.99))
@@ -159,8 +159,8 @@ def train(model, m_model, bias_model, optim, optim_G, train_loader, loss_fn, tra
 
         loss = loss_fn(hidden, a, **dict_args)
         
-        writer.add_scalars('data/losses', {
-        }, tb_count)
+        # writer.add_scalars('data/losses', {
+        # }, tb_count)
         tb_count += 1
 
         loss.backward()

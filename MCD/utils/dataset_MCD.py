@@ -1,6 +1,6 @@
 import os
 import json
-# import h5py
+import h5py
 import torch
 import pickle as cPickle
 import numpy as np
@@ -50,10 +50,10 @@ class Dictionary(object):
     @classmethod
     def load_from_file(cls, path):
         print('loading dictionary from {}'.format(path))
-        if config.version=='ok':
-            word2idx, idx2word = json.load(open(path, 'rb'))
-        else:
-            word2idx, idx2word = cPickle.load(open(path, 'rb'))
+        # if config.version=='ok':
+        word2idx, idx2word = json.load(open(path, 'rb'))
+        # else:
+        #     word2idx, idx2word = cPickle.load(open(path, 'rb'))
         d = cls(word2idx, idx2word)
         return d
 
@@ -172,31 +172,31 @@ class VQAFeatureDataset(Dataset):
         # CSS
         if config.cp_data:
             if config.version == 'v2':
-                with open('../data/train_cpv2_hintscore.json', 'r') as f:
+                with open('/data/wang/junh/githubs/MCD/MCD/data/train_cpv2_hintscore.json', 'r') as f:
                     self.train_hintscore = json.load(f)
-                with open('../data/test_cpv2_hintscore.json', 'r') as f:
+                with open('/data/wang/junh/githubs/MCD/MCD/data/test_cpv2_hintscore.json', 'r') as f:
                     self.test_hintsocre = json.load(f)
-                with open('../util/cpv2_type_mask.json', 'r') as f:
+                with open('/data/wang/junh/githubs/MCD/MCD/util/cpv2_type_mask.json', 'r') as f:
                     self.type_mask = json.load(f)
-                with open('../util/cpv2_notype_mask.json', 'r') as f:
+                with open('/data/wang/junh/githubs/MCD/MCD/util/cpv2_notype_mask.json', 'r') as f:
                     self.notype_mask = json.load(f)
             else:
-                with open('../data/train_cpv1_hintscore.json', 'r') as f:
+                with open('/data/wang/junh/githubs/MCD/MCD/data/train_cpv1_hintscore.json', 'r') as f:
                     self.train_hintscore = json.load(f)
-                with open('../data/test_cpv1_hintscore.json', 'r') as f:
+                with open('/data/wang/junh/githubs/MCD/MCD/data/test_cpv1_hintscore.json', 'r') as f:
                     self.test_hintsocre = json.load(f)
-                with open('../util/cpv1_type_mask.json', 'r') as f:
+                with open('/data/wang/junh/githubs/MCD/MCD/util/cpv1_type_mask.json', 'r') as f:
                     self.type_mask = json.load(f)
-                with open('../util/cpv1_notype_mask.json', 'r') as f:
+                with open('/data/wang/junh/githubs/MCD/MCD/util/cpv1_notype_mask.json', 'r') as f:
                     self.notype_mask = json.load(f)
         else:
-            with open('../data/train_v2_hintscore.json', 'r') as f:
+            with open('/data/wang/junh/githubs/MCD/MCD/data/train_v2_hintscore.json', 'r') as f:
                 self.train_hintscore = json.load(f)
-            with open('../data/test_v2_hintscore.json', 'r') as f:
+            with open('/data/wang/junh/githubs/MCD/MCD/data/test_v2_hintscore.json', 'r') as f:
                 self.test_hintsocre = json.load(f)
-            with open('../util/v2_type_mask.json', 'r') as f:
+            with open('/data/wang/junh/githubs/MCD/MCD/util/v2_type_mask.json', 'r') as f:
                 self.type_mask = json.load(f)
-            with open('../util/v2_notype_mask.json', 'r') as f:
+            with open('/data/wang/junh/githubs/MCD/MCD/util/v2_notype_mask.json', 'r') as f:
                 self.notype_mask = json.load(f)
 
         
@@ -213,13 +213,13 @@ class VQAFeatureDataset(Dataset):
         self.img_id2idx = json.load(open(os.path.join(
             config.ids_path, '{}36_imgid2idx.json'.format(
                 image_split)), 'r'), object_hook=utils.json_keys2int)
-        # self.h5_path = os.path.join(config.rcnn_path, '{}36.h5'.format(image_split))
-        # if config.in_memory:
-        #     print('loading image features from h5 file')
-        #     with h5py.File(self.h5_path, 'r') as hf:
-        #         self.features = np.array(hf.get('image_features'))
-        #         self.spatials = np.array(hf.get('spatial_features'))
-        # self.image_id2ix = None
+        self.h5_path = os.path.join(config.rcnn_path, '{}36.h5'.format(image_split))
+        if config.in_memory:
+            print('loading image features from h5 file')
+            with h5py.File(self.h5_path, 'r') as hf:
+                self.features = np.array(hf.get('image_features'))
+                self.spatials = np.array(hf.get('spatial_features'))
+        self.image_id2ix = None
         self.entries = _load_dataset(config.cache_root, name, self.img_id2idx)
         # self.entries = self.entries[0:10000]
         self.margins, self.freq = _load_margin(config.cache_root, name, self.entries)
@@ -271,23 +271,21 @@ class VQAFeatureDataset(Dataset):
                 entry['answer']['labels'] = None
                 entry['answer']['scores'] = None
 
-    # def load_image(self, image_id):
-    #     """ Load one image feature. """
-    #     if not hasattr(self, 'image_feat'):
-    #         self.image_feat = h5py.File(self.h5_path, 'r')
-    #     features = self.image_feat['image_features'][image_id]
-    #     spatials = self.image_feat['spatial_features'][image_id]
-    #     return torch.from_numpy(features), torch.from_numpy(spatials)
+    def load_image(self, image_id):
+        """ Load one image feature. """
+        if not hasattr(self, 'image_feat'):
+            self.image_feat = h5py.File(self.h5_path, 'r')
+        features = self.image_feat['image_features'][image_id]
+        spatials = self.image_feat['spatial_features'][image_id]
+        return torch.from_numpy(features), torch.from_numpy(spatials)
 
     def __getitem__(self, index):
         entry = self.entries[index]
-        features = torch.load('../rcnn_feature/' + str(entry["image_id"]) + '.pth',
-                              encoding='latin1')['image_feature']
-        # if config.in_memory:
-        #     features = self.features[entry['image']]
-        #     spatials = self.spatials[entry['image']]
-        # else:
-        #     features, spatials = self.load_image(entry['image'])
+        if config.in_memory:
+            features = self.features[entry['image']]
+            spatials = self.spatials[entry['image']]
+        else:
+            features, spatials = self.load_image(entry['image'])
 
         question_id = entry['question_id']
         question = entry['q_token']

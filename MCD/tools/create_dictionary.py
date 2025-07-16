@@ -5,7 +5,7 @@ import numpy as np
 sys.path.append(os.getcwd())
 
 import utils.config as config
-from utils.dataset import Dictionary
+from utils.dataset_MCD import Dictionary
 
 
 '''def create_dictionary(qa_path):
@@ -74,7 +74,7 @@ def create_dictionary(dataroot):
 
 
 def create_glove_embedding_init(idx2word, glove_file):
-    """ Using pre-trained glove embedding for questions. """
+    """ Using pre-trained GloVe embedding for questions. """
     word2emb = {}
     with open(glove_file, 'r') as f:
         entries = f.readlines()
@@ -98,6 +98,6 @@ if __name__ == '__main__':
     d = create_dictionary(config.qa_path)
     d.dump_to_file(config.dict_path)
 
-    d = Dictionary.load_from_file('/data/jxq/Bia_Model_data/dictionary.json')
-    weights, word2emb = create_glove_embedding_init(d.idx2word, '/data/jxq/CSS_data/data/glove/glove.6B.300d.txt')
+    d = Dictionary.load_from_file(config.dict_path)
+    weights, word2emb = create_glove_embedding_init(d.idx2word, config.glove_path)
     np.save(config.glove_embed_path, weights)

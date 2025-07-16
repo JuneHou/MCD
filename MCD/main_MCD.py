@@ -1,5 +1,4 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import sys
 import json
 import argparse
@@ -54,6 +53,16 @@ def parse_args():
 
 
 if __name__ == '__main__':
+    # Parse args early to set GPU before any CUDA operations
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--gpu", type=str, default='0', help='gpu card ID')
+    args, unknown = parser.parse_known_args()
+    
+    # Set GPU before importing torch
+    import os
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    
     args = parse_args()
     print(args)
     print_keys = ['cp_data', 'version', 'train_set',
@@ -61,8 +70,9 @@ if __name__ == '__main__':
     print_dict = {key: getattr(config, key) for key in print_keys}
     pprint(print_dict, width=150)
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     cudnn.benchmark = True
+    
+    print(f"Using GPU: {args.gpu} (will appear as cuda:0 due to CUDA_VISIBLE_DEVICES)")
 
     seed = 1111
     torch.manual_seed(seed)
@@ -70,7 +80,7 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = True
 
     if 'log' not in args.name:
-        args.name = '/data/jxq/code/RMLVQA/logs/' + args.name
+        args.name = '/data/wang/junh/githubs/MCD/MCD/logs/' + args.name
     if args.test_only or args.fine_tune or args.eval_only:
         args.resume = True
     if args.resume and not args.name:
@@ -81,7 +91,7 @@ if __name__ == '__main__':
 
     # ------------------------DATASET CREATION--------------------
     if config.version=='v2':
-        dictionary = Dictionary.load_from_file('../dictionary.pkl')
+        dictionary = Dictionary.load_from_file(config.dict_path)
     else:
         dictionary = Dictionary.load_from_file('../dictionary_v1.pkl')
     if args.test_only:
@@ -107,8 +117,8 @@ if __name__ == '__main__':
     metric_fc = metric_fc.cuda()
     bias_model = Bia_Model(num_hid=1024, dataset=train_dset).cuda()
     if config.version=='v2':
-        model.w_emb.init_embedding('../glove6b_init_300d.npy')
-        bias_model.w_emb.init_embedding('../glove6b_init_300d.npy')
+        model.w_emb.init_embedding('/data/wang/junh/datasets/vqa-cp-v2/glove6b_init_300d.npy')
+        bias_model.w_emb.init_embedding('/data/wang/junh/datasets/vqa-cp-v2/glove6b_init_300d.npy')
     else:
         model.w_emb.init_embedding('../glove6b_init_300d_v1.npy')
         bias_model.w_emb.init_embedding('../glove6b_init_300d_v1.npy')
@@ -168,7 +178,7 @@ if __name__ == '__main__':
                 metric_fc.train(False)
                 if config.cp_data:
                     if config.version=='v2':
-                        with open('../util/qid2type_cpv2.json', 'r') as f:
+                        with open('/data/wang/junh/githubs/MCD/MCD/util/qid2type_cpv2.json', 'r') as f:
                             qid2type = json.load(f)
                     else:
                         with open('../util/qid2type_cpv1.json', 'r') as f:
