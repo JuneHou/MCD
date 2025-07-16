@@ -70,6 +70,26 @@ class BaseModel(nn.Module):
         return joint_repr, ce_logits, w_emb
 
 
+class IdentityMarginProduct(nn.Module):
+    """
+    Identity margin model for baseline compatibility.
+    Simply returns the input logits without margin-based modifications.
+    """
+    def __init__(self, in_features, out_features):
+        super(IdentityMarginProduct, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.weight = nn.Parameter(torch.FloatTensor(out_features, in_features))
+        nn.init.xavier_uniform_(self.weight)
+
+    def forward(self, input, learned_mg=None, m=None, epoch=None, label=None):
+        # Simple linear transformation without margin
+        logits = F.linear(input, self.weight)
+        if self.training is False:
+            return None, logits
+        return logits, logits
+
+
 class ArcMarginProduct(nn.Module):
     r"""Implement of large margin arc distance: :
         Args:
@@ -209,8 +229,11 @@ def build_baseline(dataset, num_hid):
     q_net = FCNet([num_hid, num_hid])
     v_net = FCNet([dataset.v_dim, num_hid])
     fusion = FCNet([num_hid, num_hid*2], dropout=0.5)
-    return BaseModel(w_emb, q_emb, v_att, q_net, v_net,
+    basemodel = BaseModel(w_emb, q_emb, v_att, q_net, v_net,
                      fusion, num_hid, dataset.num_ans_candidates)
+    # Use identity margin model for baseline (no margin-based learning)
+    margin_model = IdentityMarginProduct(num_hid, dataset.num_ans_candidates)
+    return basemodel, margin_model
 
 
 def build_baseline_newatt(dataset, num_hid):
