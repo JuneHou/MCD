@@ -104,6 +104,7 @@ def train(model, m_model, bias_model, optim, optim_G, train_loader, loss_fn, tra
         f1 = f1.cuda()
         dict_args = {'margin': mg, 'bias': bias, 'hidden': hidden, 'epoch': epoch, 'per': f1}
         if config.css:
+            #print("Training bias model with CSS...")
             # train bias_model
             visual_grad = torch.autograd.grad((pred * (a > 0).float()).sum(), v, create_graph=True)[0]
             word_grad = torch.autograd.grad((pred * (a > 0).float()).sum(), w_emb, create_graph=True)[0]
@@ -117,6 +118,7 @@ def train(model, m_model, bias_model, optim, optim_G, train_loader, loss_fn, tra
             v_star = v_ind.gather(1, v_grad_ind)
             v_mask.scatter_(1, v_star, 0)
             # done
+
 
             # calculate q_css
             word_grad_cam = word_grad.sum(2)

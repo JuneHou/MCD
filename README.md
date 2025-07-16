@@ -45,31 +45,14 @@ python MCD/main_MCD.py --fine-tune --resume --name logs/pretrained.pth --name-ne
 
 ## Model Options
 
-- **`baseline`**: Standard attention mechanism with identity margin (no margin learning)
-- **`baseline_newatt`**: Enhanced attention with ArcMargin learning (default, recommended)
+- **`baseline`**: Standard attention mechanism with margin learning
+- **`baseline_newatt`**: Enhanced new attention mechanism with margin learning (default, recommended)
 
-```bash
-# Use baseline model (standard attention, no margin learning)
-python MCD/main_MCD.py --model baseline --gpu 1
+Both models use the ArcMarginProduct for margin-based learning. The main difference is in the attention mechanism:
+- `baseline`: Uses concatenation-based attention  
+- `baseline_newatt`: Uses projection-based attention with element-wise multiplication
 
-# Use baseline_newatt model (enhanced attention with margin learning)
-python MCD/main_MCD.py --model baseline_newatt --gpu 1
-```
-
-## Model Architecture Differences
-
-### Baseline Model (`--model baseline`)
-- **Attention**: Standard concatenation-based attention mechanism
-- **Feature Fusion**: Concatenates visual and question features, then applies nonlinear transformation
-- **Margin Learning**: Uses identity margin (no sophisticated margin-based learning)
-- **Use Case**: Good baseline for comparison, simpler architecture
-
-### Baseline NewAtt Model (`--model baseline_newatt`) 
-- **Attention**: Enhanced projection-based attention with element-wise multiplication
-- **Feature Fusion**: Separate projections for visual and question features, then element-wise multiplication
-- **Margin Learning**: Uses ArcMarginProduct for sophisticated margin-based learning
-- **Regularization**: Includes dropout for better generalization
-- **Use Case**: Recommended for best performance, implements the full MCD approach
+## Configuration
 
 Key settings in `MCD/utils/config.py`:
 - `cp_data = True`: Use VQA-CP dataset

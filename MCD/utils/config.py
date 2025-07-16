@@ -47,7 +47,7 @@ glove_embed_path    = '/data/wang/junh/datasets/vqa-cp-v2/glove6b_init_300d.npy'
 max_question_len    = 14
 image_dataset       = 'mscoco'
 task                = 'OpenEnded' if not cp_data else 'vqacp'
-test_split          = 'test2015'    # 'test-dev2015' or 'test2015'
+test_split          = 'test2015' if not cp_data else 'test'   # 'test-dev2015' or 'test2015'
 min_occurence       = 9             # answer frequency less than min will be omitted
 
 # ----------------------preprocess image config------------------ #

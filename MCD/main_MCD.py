@@ -3,6 +3,8 @@ import sys
 import json
 import argparse
 from pprint import pprint
+import time
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -16,7 +18,7 @@ import modules.base_model_MCD as base_model
 from modules.base_model_MCD import Bia_Model
 from utils.dataset_MCD import Dictionary, VQAFeatureDataset
 from utils.losses import Plain
-
+import wandb
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -48,6 +50,8 @@ def parse_args():
                         help='evaluate on the val set one time')
     parser.add_argument("--gpu", type=str, default='0',
                         help='gpu card ID')
+    parser.add_argument("--wandb", action='store_true',
+                        help='use wandb for logging')
     args = parser.parse_args()
     return args
 
@@ -69,6 +73,11 @@ if __name__ == '__main__':
                   'loss_type', 'use_cos', 'entropy', 'scale']
     print_dict = {key: getattr(config, key) for key in print_keys}
     pprint(print_dict, width=150)
+
+    if args.wandb:
+        wandb.init(project="MCD", name=args.name, config=print_dict)
+        wandb.config.update(args)
+        print(f"Initialized wandb project: MCD, run name: {args.name}")
 
     cudnn.benchmark = True
     
@@ -166,6 +175,7 @@ if __name__ == '__main__':
     else:
         train_loader = DataLoader(
             train_dset, args.batch_size, shuffle=True, num_workers=4)
+        training_start_time = time.time()
         for epoch in range(start_epoch, args.epochs):
             print("training epoch {:03d}".format(epoch))
             tb_count = train(model, metric_fc, bias_model, optim, optim_G, train_loader, loss_fn, tracker, tb_count, epoch, args)
@@ -189,23 +199,48 @@ if __name__ == '__main__':
                 eval_score, score_yesno, score_other, score_number = evaluate(model, metric_fc, eval_loader, qid2type, epoch, write=write)
                 model.train(True)
                 metric_fc.train(True)
-                print("eval score: {:.2f} \n".format(100 * eval_score))
-                print("yn score: {:.2f} \n".format(100 * float(score_yesno)))
-                print("num score: {:.2f} \n".format(100 * float(score_number)))
-                print("other score: {:.2f} \n".format(100 * float(score_other)))
+                print("eval score: {:.2f} ".format(100 * eval_score))
+                print("yn score: {:.2f} ".format(100 * float(score_yesno)))
+                print("num score: {:.2f} ".format(100 * float(score_number)))
+                print("other score: {:.2f} ".format(100 * float(score_other)))
 
-            #if eval_score > best_val_score:
-            best_val_score = eval_score
-            best_epoch = epoch
-            results = {
-                'epoch': epoch + 1,
-                'best_val_score': best_val_score,
-                'model_state': model.state_dict(),
-                'optim_state': optim.state_dict(),
-                'loss_state': loss_fn.state_dict(),
-                'margin_model_state': metric_fc.state_dict()
-            }
+                if args.wandb:
+                    wandb.log({
+                        "eval_score": eval_score * 100,
+                        "yn_score": score_yesno * 100,
+                        "num_score": score_number * 100,
+                        "other_score": score_other * 100
+                    })
+
+                        
+
+            if eval_score > best_val_score:
+                best_val_score = eval_score
+                best_epoch = epoch
+                results = {
+                    'epoch': epoch + 1,
+                    'best_val_score': best_val_score,
+                    'model_state': model.state_dict(),
+                    'optim_state': optim.state_dict(),
+                    'loss_state': loss_fn.state_dict(),
+                    'margin_model_state': metric_fc.state_dict(),
+                    'results': {
+                        'eval_score': eval_score,
+                        'yn_score': score_yesno,
+                        'num_score': score_number,
+                        'other_score': score_other
+                    }
+                }
+                print("best accuracy {:.2f} on epoch {:03d}".format(
+                    100 * best_val_score, best_epoch))
             if not args.not_save:
                 torch.save(results, args.name)
-        print("best accuracy {:.2f} on epoch {:03d}".format(
-            100 * best_val_score, best_epoch))
+        
+        # Training completed
+        training_time = time.time() - training_start_time
+        print("Training completed!")
+        print("best accuracy {:.2f} on epoch {:03d}".format(100 * best_val_score, best_epoch))
+        print(f"Total training time: {training_time/3600:.2f} hours")
+
+        # print("best accuracy {:.2f} on epoch {:03d}".format(
+        #     100 * best_val_score, best_epoch))
